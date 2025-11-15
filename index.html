@@ -1,0 +1,468 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GlobeINT - India's Fastest Network</title>
+    <link rel="icon" type="image/png" href="https://i.postimg.cc/tRmJYykv/image.png">
+    <link rel="apple-touch-icon" href="https://i.postimg.cc/RZxMH0H8/image.png">
+    <link rel="stylesheet" href="styles.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700;900&display=swap" rel="stylesheet">
+    <script src="https://unpkg.com/feather-icons"></script>
+</head>
+<body>
+    <!-- Loading Overlay -->
+    <div id="loadingOverlay" class="loading-overlay hidden">
+        <div class="loading-container">
+            <img src="https://i.postimg.cc/L8LYGXfS/image.png" alt="Loading" class="loading-icon">
+            <p id="loadingText" class="loading-text">Preparing things for you...</p>
+        </div>
+    </div>
+
+    <!-- Header -->
+    <header class="header">
+        <div class="container header-content">
+            <div class="logo-section">
+                <img src="https://i.postimg.cc/tRmJYykv/image.png" alt="GlobeINT Logo" class="logo pulse">
+                <div class="brand">
+                    <h1 class="brand-name">GlobeINT</h1>
+                    <p class="tagline">India's Fastest Network</p>
+                </div>
+            </div>
+            <div id="userSection" class="user-section hidden">
+                <button id="newConnectionBtn" class="btn-new-connection">
+                    <i data-feather="plus-circle"></i>
+                    <span>New Connection</span>
+                </button>
+                <button id="userProfileBtn" class="user-profile-btn">
+                    <i data-feather="user"></i>
+                    <span id="userIdDisplay" class="user-id-text"></span>
+                    <i data-feather="chevron-down" class="chevron-icon"></i>
+                </button>
+                <button id="logoutBtn" class="btn-icon btn-logout" title="Logout">
+                    <i data-feather="log-out"></i>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="main-content">
+        <div class="container">
+            <!-- Login/Register Section -->
+            <section id="authSection" class="auth-section">
+                <div class="auth-container fade-in">
+                    <div class="auth-logo-container">
+                        <img src="https://i.postimg.cc/RZxMH0H8/image.png" alt="GlobeINT App" class="auth-logo">
+                    </div>
+                    <h2 class="auth-title">Welcome to GlobeINT</h2>
+                    <p class="auth-subtitle">Manage all your bills in one place</p>
+                    
+                    <div class="auth-tabs">
+                        <button class="auth-tab active" data-tab="login">
+                            <i data-feather="log-in"></i>
+                            <span>Login</span>
+                        </button>
+                        <button class="auth-tab" data-tab="register">
+                            <i data-feather="user-plus"></i>
+                            <span>Register</span>
+                        </button>
+                    </div>
+
+                    <!-- Login Form -->
+                    <form id="loginForm" class="auth-form">
+                        <div class="input-group">
+                            <div class="input-icon">
+                                <i data-feather="user"></i>
+                            </div>
+                            <input type="text" id="loginUserId" placeholder="Enter User ID" required>
+                        </div>
+                        <div class="input-group">
+                            <div class="input-icon">
+                                <i data-feather="lock"></i>
+                            </div>
+                            <input type="password" id="loginPassword" placeholder="Enter Password" required>
+                        </div>
+                        <button type="submit" class="btn-primary btn-animated">
+                            <span class="btn-text">Login to Account</span>
+                            <i data-feather="arrow-right"></i>
+                        </button>
+                    </form>
+
+                    <!-- Register Form -->
+                    <form id="registerForm" class="auth-form hidden">
+                        <div class="input-group">
+                            <div class="input-icon">
+                                <i data-feather="user"></i>
+                            </div>
+                            <input type="text" id="registerUserId" placeholder="Create User ID" required>
+                        </div>
+                        <div class="input-group">
+                            <div class="input-icon">
+                                <i data-feather="lock"></i>
+                            </div>
+                            <input type="password" id="registerPassword" placeholder="Create Password" required>
+                        </div>
+                        <div class="input-group">
+                            <div class="input-icon">
+                                <i data-feather="check-circle"></i>
+                            </div>
+                            <input type="password" id="registerConfirmPassword" placeholder="Confirm Password" required>
+                        </div>
+                        <button type="submit" class="btn-primary btn-animated">
+                            <span class="btn-text">Create Account</span>
+                            <i data-feather="arrow-right"></i>
+                        </button>
+                    </form>
+
+                    <div id="authMessage" class="message hidden"></div>
+                </div>
+            </section>
+
+            <!-- Dashboard Section -->
+            <section id="dashboardSection" class="dashboard-section hidden">
+                <!-- Bill Type Tabs -->
+                <div class="bill-tabs">
+                    <button class="bill-tab active" data-type="mobile">
+                        <div class="bill-tab-icon">
+                            <i data-feather="smartphone"></i>
+                        </div>
+                        <span class="bill-tab-text">Mobile</span>
+                        <div class="bill-count" id="mobileCount">0</div>
+                    </button>
+                    <button class="bill-tab" data-type="electric">
+                        <div class="bill-tab-icon">
+                            <i data-feather="zap"></i>
+                        </div>
+                        <span class="bill-tab-text">Electric</span>
+                        <div class="bill-count" id="electricCount">0</div>
+                    </button>
+                    <button class="bill-tab" data-type="wifi">
+                        <div class="bill-tab-icon">
+                            <i data-feather="wifi"></i>
+                        </div>
+                        <span class="bill-tab-text">Wifi</span>
+                        <div class="bill-count" id="wifiCount">0</div>
+                    </button>
+                </div>
+
+                <!-- Bill Summary Bar -->
+                <div class="bill-summary-bar">
+                    <div class="summary-stats">
+                        <div class="summary-item">
+                            <i data-feather="file-text"></i>
+                            <div class="summary-info">
+                                <span class="summary-label">Pending Bills</span>
+                                <span class="summary-value" id="totalPendingBills">0</span>
+                            </div>
+                        </div>
+                        <div class="summary-item">
+                            <i data-feather="dollar-sign"></i>
+                            <div class="summary-info">
+                                <span class="summary-label">Total Amount</span>
+                                <span class="summary-value" id="totalPendingAmount">₹0</span>
+                            </div>
+                        </div>
+                    </div>
+                    <button id="payAllBtn" class="btn-pay-all">
+                        <i data-feather="credit-card"></i>
+                        <span>Pay All</span>
+                    </button>
+                </div>
+
+                <!-- Action Bar -->
+                <div class="action-bar">
+                    <h2 class="section-title" id="sectionTitle">Mobile Bills</h2>
+                    <button id="refreshBtn" class="btn-icon btn-refresh" title="Refresh">
+                        <i data-feather="refresh-cw"></i>
+                    </button>
+                </div>
+
+                <!-- Bills Container -->
+                <div id="billsContainer" class="bills-container"></div>
+            </section>
+
+            <!-- User Profile Modal -->
+            <div id="userProfileModal" class="modal hidden">
+                <div class="modal-overlay"></div>
+                <div class="modal-content profile-modal">
+                    <div class="modal-header">
+                        <h3>User Profile</h3>
+                        <button id="closeProfileModal" class="btn-icon">
+                            <i data-feather="x"></i>
+                        </button>
+                    </div>
+                    <div class="profile-body">
+                        <div class="profile-avatar">
+                            <i data-feather="user"></i>
+                        </div>
+                        <div class="profile-info">
+                            <div class="profile-field">
+                                <label>User ID</label>
+                                <div class="profile-value" id="profileUserId">-</div>
+                            </div>
+                            <div class="profile-field">
+                                <label>Account Created</label>
+                                <div class="profile-value" id="profileCreated">-</div>
+                            </div>
+                            <div class="profile-field">
+                                <label>Last Login</label>
+                                <div class="profile-value" id="profileLastLogin">-</div>
+                            </div>
+                        </div>
+                        <div class="profile-stats">
+                            <div class="stat-card">
+                                <div class="stat-icon">
+                                    <i data-feather="file-text"></i>
+                                </div>
+                                <div class="stat-info">
+                                    <div class="stat-value" id="totalBills">0</div>
+                                    <div class="stat-label">Total Bills</div>
+                                </div>
+                            </div>
+                            <div class="stat-card">
+                                <div class="stat-icon">
+                                    <i data-feather="alert-circle"></i>
+                                </div>
+                                <div class="stat-info">
+                                    <div class="stat-value" id="pendingBills">0</div>
+                                    <div class="stat-label">Pending</div>
+                                </div>
+                            </div>
+                            <div class="stat-card">
+                                <div class="stat-icon">
+                                    <i data-feather="check-circle"></i>
+                                </div>
+                                <div class="stat-info">
+                                    <div class="stat-value" id="paidBills">0</div>
+                                    <div class="stat-label">Paid</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- New Connection Modal -->
+            <div id="newConnectionModal" class="modal hidden">
+                <div class="modal-overlay"></div>
+                <div class="modal-content new-connection-modal">
+                    <div class="modal-header">
+                        <h3>Get New Connection</h3>
+                        <button id="closeNewConnectionModal" class="btn-icon">
+                            <i data-feather="x"></i>
+                        </button>
+                    </div>
+                    <div class="new-connection-body">
+                        <div class="connection-intro">
+                            <img src="https://i.postimg.cc/RZxMH0H8/image.png" alt="GlobeINT" class="connection-logo">
+                            <h4>Choose Your Service</h4>
+                            <p>Select the service you want to get connected with India's fastest network</p>
+                        </div>
+
+                        <div class="service-options">
+                            <div class="service-card" data-service="mobile">
+                                <div class="service-icon">
+                                    <i data-feather="smartphone"></i>
+                                </div>
+                                <h5>Mobile Connection</h5>
+                                <p>Get high-speed 5G connectivity</p>
+                                <ul class="service-features">
+                                    <li>Unlimited calling</li>
+                                    <li>High-speed data</li>
+                                    <li>Pan-India network</li>
+                                </ul>
+                            </div>
+
+                            <div class="service-card" data-service="electric">
+                                <div class="service-icon">
+                                    <i data-feather="zap"></i>
+                                </div>
+                                <h5>Electric Connection</h5>
+                                <p>Reliable power supply 24/7</p>
+                                <ul class="service-features">
+                                    <li>Smart metering</li>
+                                    <li>Online billing</li>
+                                    <li>Quick support</li>
+                                </ul>
+                            </div>
+
+                            <div class="service-card" data-service="wifi">
+                                <div class="service-icon">
+                                    <i data-feather="wifi"></i>
+                                </div>
+                                <h5>Wifi Connection</h5>
+                                <p>Ultra-fast broadband internet</p>
+                                <ul class="service-features">
+                                    <li>Fiber connectivity</li>
+                                    <li>Unlimited data</li>
+                                    <li>24/7 support</li>
+                                </ul>
+                            </div>
+                        </div>
+
+                        <div class="expert-contact">
+                            <div class="expert-info">
+                                <i data-feather="headphones"></i>
+                                <div>
+                                    <h5>Need Help?</h5>
+                                    <p>Connect with our sales expert</p>
+                                </div>
+                            </div>
+                            <button id="contactExpertBtn" class="btn-primary">
+                                <i data-feather="message-circle"></i>
+                                <span>Chat on WhatsApp</span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Payment Gateway Modal -->
+            <div id="paymentModal" class="modal hidden">
+                <div class="modal-overlay"></div>
+                <div class="modal-content payment-modal">
+                    <div class="modal-header">
+                        <h3>Payment Gateway</h3>
+                        <button id="closePaymentModal" class="btn-icon">
+                            <i data-feather="x"></i>
+                        </button>
+                    </div>
+                    <div class="payment-body">
+                        <div class="payment-summary">
+                            <div class="payment-detail">
+                                <span>Bill ID:</span>
+                                <strong id="paymentBillId">-</strong>
+                            </div>
+                            <div class="payment-detail">
+                                <span>Bill Type:</span>
+                                <strong id="paymentBillType">-</strong>
+                            </div>
+                            <div class="payment-amount">
+                                <span>Amount to Pay</span>
+                                <div class="amount-display" id="paymentAmount">₹0.00</div>
+                            </div>
+                        </div>
+
+                        <div class="payment-methods">
+                            <h4>Select Payment Method</h4>
+                            <div class="payment-options">
+                                <button class="payment-option active" data-method="upi">
+                                    <i data-feather="smartphone"></i>
+                                    <span>UPI Payment</span>
+                                </button>
+                            </div>
+                        </div>
+
+                        <div class="upi-section" id="upiSection">
+                            <div class="upi-details">
+                                <div class="upi-id-box">
+                                    <i data-feather="at-sign"></i>
+                                    <span>anas.lila@ibl</span>
+                                </div>
+                                <div class="qr-code-container">
+                                    <img id="qrCodeImage" src="" alt="UPI QR Code" class="qr-code">
+                                    <p class="qr-instruction">Scan QR code to pay</p>
+                                </div>
+                            </div>
+                            <button id="confirmPaymentBtn" class="btn-primary btn-confirm-payment">
+                                <i data-feather="check-circle"></i>
+                                <span>I Have Paid</span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Payment Success Modal -->
+            <div id="paymentSuccessModal" class="modal hidden">
+                <div class="modal-overlay"></div>
+                <div class="modal-content payment-result-modal">
+                    <div class="modal-header success-header">
+                        <h3>Payment Successful!</h3>
+                        <button id="closeSuccessModal" class="btn-icon">
+                            <i data-feather="x"></i>
+                        </button>
+                    </div>
+                    <div class="payment-result-body">
+                        <img src="https://i.postimg.cc/wvqc2J14/image.png" alt="Success" class="result-image">
+                        <h4>Payment Completed</h4>
+                        <div class="payment-details">
+                            <div class="detail-row">
+                                <span>Bill ID:</span>
+                                <strong id="successBillId">-</strong>
+                            </div>
+                            <div class="detail-row">
+                                <span>Amount Paid:</span>
+                                <strong id="successAmount">₹0</strong>
+                            </div>
+                            <div class="detail-row">
+                                <span>Payment Date:</span>
+                                <strong id="successDate">-</strong>
+                            </div>
+                            <div class="detail-row">
+                                <span>Status:</span>
+                                <strong class="status-paid">PAID</strong>
+                            </div>
+                        </div>
+                        <button id="doneSuccessBtn" class="btn-primary">
+                            <i data-feather="check"></i>
+                            <span>Done</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Payment Failed Modal -->
+            <div id="paymentFailedModal" class="modal hidden">
+                <div class="modal-overlay"></div>
+                <div class="modal-content payment-result-modal">
+                    <div class="modal-header failed-header">
+                        <h3>Payment Failed</h3>
+                        <button id="closeFailedModal" class="btn-icon">
+                            <i data-feather="x"></i>
+                        </button>
+                    </div>
+                    <div class="payment-result-body">
+                        <img src="https://i.postimg.cc/hPdx9M2y/image.png" alt="Failed" class="result-image">
+                        <h4>Payment Could Not Be Completed</h4>
+                        <div class="payment-details">
+                            <div class="detail-row">
+                                <span>Bill ID:</span>
+                                <strong id="failedBillId">-</strong>
+                            </div>
+                            <div class="detail-row">
+                                <span>Amount:</span>
+                                <strong id="failedAmount">₹0</strong>
+                            </div>
+                            <div class="detail-row">
+                                <span>Reason:</span>
+                                <strong id="failedReason">Transaction failed</strong>
+                            </div>
+                        </div>
+                        <div class="failed-actions">
+                            <button id="retryPaymentBtn" class="btn-primary">
+                                <i data-feather="refresh-cw"></i>
+                                <span>Retry Payment</span>
+                            </button>
+                            <button id="closeFailedBtn" class="btn-secondary">
+                                <span>Close</span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Toast Notification -->
+    <div id="toast" class="toast hidden">
+        <div class="toast-icon"></div>
+        <span class="toast-text"></span>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>

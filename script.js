@@ -1,0 +1,646 @@
+// GlobeINT Billing System v1.03
+// Roboto Font + Payment Gateway with UPI QR Code
+
+const API_URL = 'https://script.google.com/macros/s/AKfycbyZH0rxfUMSZa8BtmOq3Ey96KnTXTZr9mcUl2_BSSBxOR4-msR92p4Sf3KPs4xFJFzHmQ/exec';
+
+let currentUser = null;
+let currentBillType = 'mobile';
+let allBills = { mobile: [], electric: [], wifi: [] };
+let userCredentials = null;
+let loadingInterval = null;
+let loadingMessageIndex = 0;
+let currentPaymentBill = null;
+
+// Loading Messages Array
+const loadingMessages = [
+    "Preparing things for you...",
+    "Getting everything in place...",
+    "Just a moment...",
+    "Setting things up...",
+    "Almost there...",
+    "Making it ready...",
+    "Loading the good stuff...",
+    "Tidying up in the background...",
+    "Final touches...",
+    "Done in a blink..."
+];
+
+// DOM Elements
+const loadingOverlay = document.getElementById('loadingOverlay');
+const loadingText = document.getElementById('loadingText');
+const authSection = document.getElementById('authSection');
+const dashboardSection = document.getElementById('dashboardSection');
+const userSection = document.getElementById('userSection');
+const userIdDisplay = document.getElementById('userIdDisplay');
+
+const authTabs = document.querySelectorAll('.auth-tab');
+const loginForm = document.getElementById('loginForm');
+const registerForm = document.getElementById('registerForm');
+const authMessage = document.getElementById('authMessage');
+
+const billTabs = document.querySelectorAll('.bill-tab');
+const billsContainer = document.getElementById('billsContainer');
+const refreshBtn = document.getElementById('refreshBtn');
+const sectionTitle = document.getElementById('sectionTitle');
+
+const mobileCount = document.getElementById('mobileCount');
+const electricCount = document.getElementById('electricCount');
+const wifiCount = document.getElementById('wifiCount');
+
+const userProfileBtn = document.getElementById('userProfileBtn');
+const userProfileModal = document.getElementById('userProfileModal');
+const closeProfileModal = document.getElementById('closeProfileModal');
+
+const paymentModal = document.getElementById('paymentModal');
+const closePaymentModal = document.getElementById('closePaymentModal');
+const confirmPaymentBtn = document.getElementById('confirmPaymentBtn');
+
+const logoutBtn = document.getElementById('logoutBtn');
+const toast = document.getElementById('toast');
+
+// Initialize
+document.addEventListener('DOMContentLoaded', () => {
+    console.log('%c🌐 GlobeINT v1.03 - Initialized', 'color: #d40000; font-size: 16px; font-weight: bold;');
+    feather.replace();
+    checkSession();
+    setupEventListeners();
+});
+
+// Event Listeners
+function setupEventListeners() {
+    // Auth tabs
+    authTabs.forEach(tab => {
+        tab.addEventListener('click', () => switchAuthTab(tab.dataset.tab));
+    });
+
+    // Forms
+    loginForm.addEventListener('submit', handleLogin);
+    registerForm.addEventListener('submit', handleRegister);
+
+    // Bill tabs
+    billTabs.forEach(tab => {
+        tab.addEventListener('click', () => switchBillType(tab.dataset.type));
+    });
+
+    // Buttons
+    refreshBtn.addEventListener('click', () => {
+        const icon = refreshBtn.querySelector('svg');
+        icon.style.animation = 'spin 0.6s ease';
+        setTimeout(() => {
+            icon.style.animation = '';
+        }, 600);
+        loadAllBills();
+    });
+    
+    logoutBtn.addEventListener('click', handleLogout);
+    
+    // User Profile Modal
+    userProfileBtn.addEventListener('click', openUserProfile);
+    closeProfileModal.addEventListener('click', closeUserProfile);
+    
+    // Payment Modal
+    closePaymentModal.addEventListener('click', closePayment);
+    confirmPaymentBtn.addEventListener('click', confirmPayment);
+    
+    // Close modals on overlay click
+    userProfileModal.addEventListener('click', (e) => {
+        if (e.target === userProfileModal || e.target.classList.contains('modal-overlay')) {
+            closeUserProfile();
+        }
+    });
+
+    paymentModal.addEventListener('click', (e) => {
+        if (e.target === paymentModal || e.target.classList.contains('modal-overlay')) {
+            closePayment();
+        }
+    });
+
+    // Close modals on Escape key
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape') {
+            if (!userProfileModal.classList.contains('hidden')) {
+                closeUserProfile();
+            }
+            if (!paymentModal.classList.contains('hidden')) {
+                closePayment();
+            }
+        }
+    });
+}
+
+// Loading Functions
+function showLoading(show) {
+    if (show) {
+        loadingOverlay.classList.remove('hidden');
+        startLoadingMessages();
+    } else {
+        loadingOverlay.classList.add('hidden');
+        stopLoadingMessages();
+    }
+}
+
+function startLoadingMessages() {
+    loadingMessageIndex = 0;
+    loadingText.textContent = loadingMessages[0];
+    
+    loadingInterval = setInterval(() => {
+        loadingMessageIndex = (loadingMessageIndex + 1) % loadingMessages.length;
+        loadingText.textContent = loadingMessages[loadingMessageIndex];
+    }, 1500);
+}
+
+function stopLoadingMessages() {
+    if (loadingInterval) {
+        clearInterval(loadingInterval);
+        loadingInterval = null;
+    }
+}
+
+// Session Management
+function checkSession() {
+    const savedUser = localStorage.getItem('globeint_user');
+    if (savedUser) {
+        console.log('📱 Session found for user:', savedUser);
+        currentUser = savedUser;
+        showDashboard();
+    } else {
+        console.log('🔐 No session found, showing auth');
+        showAuth();
+    }
+}
+
+function showAuth() {
+    authSection.classList.remove('hidden');
+    dashboardSection.classList.add('hidden');
+    userSection.classList.add('hidden');
+}
+
+function showDashboard() {
+    authSection.classList.add('hidden');
+    dashboardSection.classList.remove('hidden');
+    userSection.classList.remove('hidden');
+    userIdDisplay.textContent = currentUser;
+    loadAllBills();
+    feather.replace();
+}
+
+// Auth Tab Switching
+function switchAuthTab(tab) {
+    authTabs.forEach(t => t.classList.remove('active'));
+    document.querySelector(`[data-tab="${tab}"]`).classList.add('active');
+
+    if (tab === 'login') {
+        loginForm.classList.remove('hidden');
+        registerForm.classList.add('hidden');
+    } else {
+        loginForm.classList.add('hidden');
+        registerForm.classList.remove('hidden');
+    }
+    authMessage.classList.add('hidden');
+    feather.replace();
+}
+
+// Authentication Handlers
+async function handleLogin(e) {
+    e.preventDefault();
+    const userId = document.getElementById('loginUserId').value.trim();
+    const password = document.getElementById('loginPassword').value;
+
+    if (!userId || !password) {
+        showAuthMessage('Please fill in all fields', 'error');
+        return;
+    }
+
+    console.log('🔑 Attempting login for:', userId);
+    showLoading(true);
+
+    try {
+        const response = await fetchWithRetry(`${API_URL}?action=login&userId=${encodeURIComponent(userId)}&password=${encodeURIComponent(password)}`, 3);
+        const data = await response.json();
+
+        console.log('📥 Login response:', data);
+
+        if (data.success) {
+            currentUser = userId;
+            localStorage.setItem('globeint_user', userId);
+            showToast('Login successful! Welcome back.', 'success');
+            setTimeout(() => showDashboard(), 800);
+        } else {
+            showAuthMessage(data.message || 'Invalid credentials', 'error');
+        }
+    } catch (error) {
+        console.error('❌ Login error:', error);
+        showAuthMessage('Connection error. Please try again.', 'error');
+    } finally {
+        showLoading(false);
+    }
+}
+
+async function handleRegister(e) {
+    e.preventDefault();
+    const userId = document.getElementById('registerUserId').value.trim();
+    const password = document.getElementById('registerPassword').value;
+    const confirmPassword = document.getElementById('registerConfirmPassword').value;
+
+    if (!userId || !password || !confirmPassword) {
+        showAuthMessage('Please fill in all fields', 'error');
+        return;
+    }
+
+    if (password !== confirmPassword) {
+        showAuthMessage('Passwords do not match', 'error');
+        return;
+    }
+
+    if (password.length < 6) {
+        showAuthMessage('Password must be at least 6 characters', 'error');
+        return;
+    }
+
+    console.log('✍️ Attempting registration for:', userId);
+    showLoading(true);
+
+    try {
+        const response = await fetchWithRetry(API_URL, 3, {
+            method: 'POST',
+            body: JSON.stringify({
+                action: 'register',
+                userId: userId,
+                password: password
+            })
+        });
+        const data = await response.json();
+
+        console.log('📥 Register response:', data);
+
+        if (data.success) {
+            showAuthMessage('Registration successful! Please login.', 'success');
+            registerForm.reset();
+            setTimeout(() => switchAuthTab('login'), 2000);
+        } else {
+            showAuthMessage(data.message || 'Registration failed', 'error');
+        }
+    } catch (error) {
+        console.error('❌ Register error:', error);
+        showAuthMessage('Connection error. Please try again.', 'error');
+    } finally {
+        showLoading(false);
+    }
+}
+
+function handleLogout() {
+    console.log('👋 Logging out user:', currentUser);
+    currentUser = null;
+    userCredentials = null;
+    localStorage.removeItem('globeint_user');
+    loginForm.reset();
+    allBills = { mobile: [], electric: [], wifi: [] };
+    showToast('Logged out successfully', 'success');
+    setTimeout(() => showAuth(), 500);
+}
+
+// Fetch with Retry Logic
+async function fetchWithRetry(url, retries = 3, options = {}) {
+    for (let i = 0; i < retries; i++) {
+        try {
+            console.log(`🌐 Fetch attempt ${i + 1}/${retries}:`, url.substring(0, 100) + '...');
+            const response = await fetch(url, options);
+            if (!response.ok && i < retries - 1) {
+                console.warn(`⚠️ Response not OK, retrying... Status: ${response.status}`);
+                await wait(1000 * (i + 1));
+                continue;
+            }
+            return response;
+        } catch (error) {
+            console.error(`❌ Fetch error on attempt ${i + 1}:`, error);
+            if (i === retries - 1) throw error;
+            await wait(1000 * (i + 1));
+        }
+    }
+}
+
+function wait(ms) {
+    return new Promise(resolve => setTimeout(resolve, ms));
+}
+
+// Bill Management
+function switchBillType(type) {
+    console.log('📋 Switching to bill type:', type);
+    currentBillType = type;
+    billTabs.forEach(tab => tab.classList.remove('active'));
+    document.querySelector(`[data-type="${type}"]`).classList.add('active');
+    
+    const titles = {
+        mobile: 'Mobile Bills',
+        electric: 'Electric Bills',
+        wifi: 'Wifi Bills'
+    };
+    sectionTitle.textContent = titles[type];
+    
+    displayBills();
+    feather.replace();
+}
+
+async function loadAllBills() {
+    if (!currentUser) {
+        console.warn('⚠️ No user logged in, cannot load bills');
+        return;
+    }
+
+    console.log('📊 Loading all bills for user:', currentUser);
+    showLoading(true);
+
+    try {
+        const response = await fetchWithRetry(`${API_URL}?action=getAllBills&userId=${encodeURIComponent(currentUser)}`, 3);
+        const data = await response.json();
+
+        console.log('📥 Bills response:', data);
+
+        if (data.success) {
+            allBills.mobile = Array.isArray(data.mobile) ? data.mobile : [];
+            allBills.electric = Array.isArray(data.electric) ? data.electric : [];
+            allBills.wifi = Array.isArray(data.wifi) ? data.wifi : [];
+            
+            console.log('✅ Bills loaded:', {
+                mobile: allBills.mobile.length,
+                electric: allBills.electric.length,
+                wifi: allBills.wifi.length
+            });
+            
+            updateBillCounts();
+            displayBills();
+            await loadUserCredentials();
+        } else {
+            console.error('❌ Failed to load bills:', data.message);
+            showToast('Failed to load bills', 'error');
+        }
+    } catch (error) {
+        console.error('❌ Load bills error:', error);
+        showToast('Connection error. Please refresh.', 'error');
+    } finally {
+        showLoading(false);
+    }
+}
+
+function updateBillCounts() {
+    const mobilePending = allBills.mobile.filter(b => b.Status === 'Pending').length;
+    const electricPending = allBills.electric.filter(b => b.Status === 'Pending').length;
+    const wifiPending = allBills.wifi.filter(b => b.Status === 'Pending').length;
+    
+    mobileCount.textContent = mobilePending;
+    electricCount.textContent = electricPending;
+    wifiCount.textContent = wifiPending;
+
+    console.log('🔢 Bill counts updated:', { mobilePending, electricPending, wifiPending });
+}
+
+async function loadUserCredentials() {
+    try {
+        userCredentials = {
+            'Created Date': 'N/A',
+            'Last Login': new Date().toLocaleDateString('en-IN')
+        };
+        console.log('👤 User credentials loaded');
+    } catch (error) {
+        console.error('❌ Load user credentials error:', error);
+    }
+}
+
+function displayBills() {
+    const bills = allBills[currentBillType] || [];
+    billsContainer.innerHTML = '';
+
+    console.log(`📄 Displaying ${currentBillType} bills:`, bills.length);
+
+    const pendingBills = bills.filter(bill => bill.Status === 'Pending');
+
+    if (pendingBills.length === 0) {
+        console.log('✨ No pending bills, showing empty state');
+        billsContainer.innerHTML = `
+            <div class="empty-state">
+                <img src="https://i.postimg.cc/QNw35MTv/image.png" alt="All Caught Up" class="empty-state-image">
+                <h3>All Caught Up!</h3>
+                <p>You have no pending ${currentBillType} bills at the moment.</p>
+            </div>
+        `;
+        return;
+    }
+
+    pendingBills.sort((a, b) => {
+        const dateA = new Date(a['Due Date']);
+        const dateB = new Date(b['Due Date']);
+        return dateB - dateA;
+    });
+
+    pendingBills.forEach(bill => {
+        const card = createBillCard(bill);
+        billsContainer.appendChild(card);
+    });
+
+    feather.replace();
+    console.log('✅ Bills displayed successfully');
+}
+
+function createBillCard(bill) {
+    const card = document.createElement('div');
+    card.className = 'bill-card';
+    
+    const isPaid = bill.Status === 'Paid';
+    const amount = parseFloat(bill.Amount) || 0;
+    
+    card.innerHTML = `
+        <div class="bill-header">
+            <span class="bill-id">${bill['Bill ID'] || 'N/A'}</span>
+            <span class="bill-status ${isPaid ? 'paid' : 'pending'}">${bill.Status || 'Pending'}</span>
+        </div>
+        <div class="bill-amount">₹${amount.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>
+        <div class="bill-details">
+            <div class="bill-detail">
+                <i data-feather="calendar"></i>
+                <span>${bill.Month || 'N/A'} ${bill.Year || ''}</span>
+            </div>
+            <div class="bill-detail">
+                <i data-feather="clock"></i>
+                <span>Due: ${bill['Due Date'] || 'N/A'}</span>
+            </div>
+        </div>
+        <div class="bill-actions">
+            ${!isPaid ? `
+                <button class="btn-small btn-pay" onclick="openPaymentGateway('${bill['Bill ID']}', '${amount}')">
+                    <i data-feather="credit-card"></i>
+                    <span>Pay Now</span>
+                </button>
+            ` : ''}
+        </div>
+    `;
+    
+    return card;
+}
+
+// Payment Gateway Functions
+function openPaymentGateway(billId, amount) {
+    console.log('💳 Opening payment gateway for bill:', billId, 'Amount:', amount);
+    
+    const bills = allBills[currentBillType] || [];
+    currentPaymentBill = bills.find(b => b['Bill ID'] === billId);
+    
+    if (!currentPaymentBill) {
+        console.error('❌ Bill not found:', billId);
+        showToast('Bill not found', 'error');
+        return;
+    }
+
+    document.getElementById('paymentBillId').textContent = billId;
+    document.getElementById('paymentBillType').textContent = currentBillType.toUpperCase();
+    document.getElementById('paymentAmount').textContent = `₹${parseFloat(amount).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+    
+    generateUPIQRCode(amount);
+    
+    paymentModal.classList.remove('hidden');
+    feather.replace();
+}
+
+function generateUPIQRCode(amount) {
+    const upiId = 'anas.lila@ibl';
+    const name = 'GlobeINT';
+    const amountValue = parseFloat(amount).toFixed(2);
+    
+    const upiString = `upi://pay?pa=${upiId}&pn=${encodeURIComponent(name)}&am=${amountValue}&cu=INR`;
+    
+    console.log('🔗 UPI String:', upiString);
+    
+    const qrCodeUrl = `https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(upiString)}`;
+    
+    document.getElementById('qrCodeImage').src = qrCodeUrl;
+    console.log('✅ QR Code generated');
+}
+
+function closePayment() {
+    paymentModal.classList.add('hidden');
+    currentPaymentBill = null;
+    console.log('❌ Payment modal closed');
+}
+
+async function confirmPayment() {
+    if (!currentPaymentBill) {
+        showToast('No bill selected', 'error');
+        return;
+    }
+
+    const billId = currentPaymentBill['Bill ID'];
+    console.log('✅ Confirming payment for bill:', billId);
+
+    closePayment();
+    showLoading(true);
+
+    try {
+        const response = await fetchWithRetry(API_URL, 3, {
+            method: 'POST',
+            body: JSON.stringify({
+                action: 'payBill',
+                billId: billId,
+                billType: currentBillType
+            })
+        });
+        const data = await response.json();
+
+        console.log('📥 Payment response:', data);
+
+        if (data.success) {
+            showToast('Bill marked as paid successfully!', 'success');
+            await loadAllBills();
+        } else {
+            showToast(data.message || 'Failed to pay bill', 'error');
+        }
+    } catch (error) {
+        console.error('❌ Payment error:', error);
+        showToast('Connection error. Please try again.', 'error');
+    } finally {
+        showLoading(false);
+    }
+}
+
+// User Profile Modal
+function openUserProfile() {
+    console.log('👤 Opening user profile');
+    userProfileModal.classList.remove('hidden');
+    populateUserProfile();
+    feather.replace();
+}
+
+function closeUserProfile() {
+    userProfileModal.classList.add('hidden');
+    console.log('❌ User profile closed');
+}
+
+function populateUserProfile() {
+    document.getElementById('profileUserId').textContent = currentUser;
+    
+    if (userCredentials) {
+        document.getElementById('profileCreated').textContent = userCredentials['Created Date'] || 'N/A';
+        document.getElementById('profileLastLogin').textContent = userCredentials['Last Login'] || 'N/A';
+    } else {
+        document.getElementById('profileCreated').textContent = 'N/A';
+        document.getElementById('profileLastLogin').textContent = new Date().toLocaleDateString('en-IN');
+    }
+    
+    const totalBillsCount = allBills.mobile.length + allBills.electric.length + allBills.wifi.length;
+    const pendingBillsCount = 
+        allBills.mobile.filter(b => b.Status === 'Pending').length +
+        allBills.electric.filter(b => b.Status === 'Pending').length +
+        allBills.wifi.filter(b => b.Status === 'Pending').length;
+    const paidBillsCount = totalBillsCount - pendingBillsCount;
+    
+    document.getElementById('totalBills').textContent = totalBillsCount;
+    document.getElementById('pendingBills').textContent = pendingBillsCount;
+    document.getElementById('paidBills').textContent = paidBillsCount;
+
+    console.log('📊 Profile stats:', { totalBillsCount, pendingBillsCount, paidBillsCount });
+}
+
+// UI Helper Functions
+function showAuthMessage(message, type) {
+    authMessage.textContent = message;
+    authMessage.className = `message ${type}`;
+    authMessage.classList.remove('hidden');
+    
+    setTimeout(() => {
+        authMessage.classList.add('hidden');
+    }, 5000);
+}
+
+function showToast(message, type = 'success') {
+    const toastText = toast.querySelector('.toast-text');
+    
+    if (toastText) {
+        toastText.textContent = message;
+    } else {
+        toast.textContent = message;
+    }
+    
+    toast.className = `toast ${type}`;
+    toast.classList.remove('hidden');
+    
+    setTimeout(() => {
+        toast.classList.add('hidden');
+    }, 4000);
+}
+
+// Global functions for inline handlers
+window.openPaymentGateway = openPaymentGateway;
+
+// Smooth scroll
+document.documentElement.style.scrollBehavior = 'smooth';
+
+// Auto-refresh bills every 5 minutes
+setInterval(() => {
+    if (currentUser && loadingOverlay.classList.contains('hidden')) {
+        console.log('🔄 Auto-refreshing bills...');
+        loadAllBills();
+    }
+}, 300000);
+
+// Console branding
+console.log('%c🌐 GlobeINT Billing System', 'color: #d40000; font-size: 24px; font-weight: bold;');
+console.log('%cIndia\'s Fastest Network', 'color: #666; font-size: 14px; font-style: italic;');
+console.log('%cVersion 1.03 - Ready!', 'color: #00b960; font-size: 12px; font-weight: bold;');
