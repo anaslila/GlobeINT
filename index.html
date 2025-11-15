@@ -2,14 +2,14 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>GlobeINT - India's Fastest Network</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>GlobeINT - Innovation made for you</title>
     <link rel="icon" type="image/png" href="https://i.postimg.cc/tRmJYykv/image.png">
     <link rel="apple-touch-icon" href="https://i.postimg.cc/RZxMH0H8/image.png">
     <link rel="stylesheet" href="styles.css">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700;900&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;600;700;900&display=swap" rel="stylesheet">
     <script src="https://unpkg.com/feather-icons"></script>
 </head>
 <body>
@@ -21,14 +21,25 @@
         </div>
     </div>
 
+    <!-- Payment Status Checking Overlay -->
+    <div id="statusCheckOverlay" class="loading-overlay hidden">
+        <div class="loading-container">
+            <div class="status-check-icon-wrapper">
+                <img src="https://i.postimg.cc/L8LYGXfS/image.png" alt="Checking" class="status-check-bg">
+                <img src="https://i.postimg.cc/BbFMjFtD/image.png" alt="Rupee" class="status-check-rupee">
+            </div>
+            <p id="statusCheckText" class="loading-text">Checking your payment...</p>
+        </div>
+    </div>
+
     <!-- Header -->
     <header class="header">
         <div class="container header-content">
             <div class="logo-section">
-                <img src="https://i.postimg.cc/tRmJYykv/image.png" alt="GlobeINT Logo" class="logo pulse">
+                <img src="https://i.postimg.cc/tRmJYykv/image.png" alt="GlobeINT Logo" class="logo">
                 <div class="brand">
                     <h1 class="brand-name">GlobeINT</h1>
-                    <p class="tagline">India's Fastest Network</p>
+                    <p class="tagline">Innovation made for you...</p>
                 </div>
             </div>
             <div id="userSection" class="user-section hidden">
@@ -39,7 +50,6 @@
                 <button id="userProfileBtn" class="user-profile-btn">
                     <i data-feather="user"></i>
                     <span id="userIdDisplay" class="user-id-text"></span>
-                    <i data-feather="chevron-down" class="chevron-icon"></i>
                 </button>
                 <button id="logoutBtn" class="btn-icon btn-logout" title="Logout">
                     <i data-feather="log-out"></i>
@@ -58,7 +68,7 @@
                         <img src="https://i.postimg.cc/RZxMH0H8/image.png" alt="GlobeINT App" class="auth-logo">
                     </div>
                     <h2 class="auth-title">Welcome to GlobeINT</h2>
-                    <p class="auth-subtitle">Manage all your bills in one place</p>
+                    <p class="auth-subtitle">Innovation made for you</p>
                     
                     <div class="auth-tabs">
                         <button class="auth-tab active" data-tab="login">
@@ -77,16 +87,16 @@
                             <div class="input-icon">
                                 <i data-feather="user"></i>
                             </div>
-                            <input type="text" id="loginUserId" placeholder="Enter User ID" required>
+                            <input type="text" id="loginUserId" placeholder="Enter User ID" required autocomplete="off">
                         </div>
                         <div class="input-group">
                             <div class="input-icon">
                                 <i data-feather="lock"></i>
                             </div>
-                            <input type="password" id="loginPassword" placeholder="Enter Password" required>
+                            <input type="password" id="loginPassword" placeholder="Enter Password" required autocomplete="off">
                         </div>
-                        <button type="submit" class="btn-primary btn-animated">
-                            <span class="btn-text">Login to Account</span>
+                        <button type="submit" class="btn-primary">
+                            <span>Login to Account</span>
                             <i data-feather="arrow-right"></i>
                         </button>
                     </form>
@@ -97,22 +107,22 @@
                             <div class="input-icon">
                                 <i data-feather="user"></i>
                             </div>
-                            <input type="text" id="registerUserId" placeholder="Create User ID" required>
+                            <input type="text" id="registerUserId" placeholder="Create User ID" required autocomplete="off">
                         </div>
                         <div class="input-group">
                             <div class="input-icon">
                                 <i data-feather="lock"></i>
                             </div>
-                            <input type="password" id="registerPassword" placeholder="Create Password" required>
+                            <input type="password" id="registerPassword" placeholder="Create Password" required autocomplete="off">
                         </div>
                         <div class="input-group">
                             <div class="input-icon">
                                 <i data-feather="check-circle"></i>
                             </div>
-                            <input type="password" id="registerConfirmPassword" placeholder="Confirm Password" required>
+                            <input type="password" id="registerConfirmPassword" placeholder="Confirm Password" required autocomplete="off">
                         </div>
-                        <button type="submit" class="btn-primary btn-animated">
-                            <span class="btn-text">Create Account</span>
+                        <button type="submit" class="btn-primary">
+                            <span>Create Account</span>
                             <i data-feather="arrow-right"></i>
                         </button>
                     </form>
@@ -123,28 +133,32 @@
 
             <!-- Dashboard Section -->
             <section id="dashboardSection" class="dashboard-section hidden">
-                <!-- Bill Type Tabs -->
-                <div class="bill-tabs">
-                    <button class="bill-tab active" data-type="mobile">
-                        <div class="bill-tab-icon">
-                            <i data-feather="smartphone"></i>
-                        </div>
-                        <span class="bill-tab-text">Mobile</span>
-                        <div class="bill-count" id="mobileCount">0</div>
+                <!-- Choose Service Label -->
+                <div class="section-header">
+                    <h2 class="section-header-title">Choose a Service</h2>
+                </div>
+
+                <!-- Bill Type Tabs - COMPACT -->
+                <div class="bill-tabs-compact">
+                    <button class="bill-tab-compact active" data-type="mobile">
+                        <i data-feather="smartphone"></i>
+                        <span>Mobile</span>
+                        <div class="bill-count-compact" id="mobileCount">0</div>
                     </button>
-                    <button class="bill-tab" data-type="electric">
-                        <div class="bill-tab-icon">
-                            <i data-feather="zap"></i>
-                        </div>
-                        <span class="bill-tab-text">Electric</span>
-                        <div class="bill-count" id="electricCount">0</div>
+                    <button class="bill-tab-compact" data-type="electric">
+                        <i data-feather="zap"></i>
+                        <span>Electric</span>
+                        <div class="bill-count-compact" id="electricCount">0</div>
                     </button>
-                    <button class="bill-tab" data-type="wifi">
-                        <div class="bill-tab-icon">
-                            <i data-feather="wifi"></i>
-                        </div>
-                        <span class="bill-tab-text">Wifi</span>
-                        <div class="bill-count" id="wifiCount">0</div>
+                    <button class="bill-tab-compact" data-type="wifi">
+                        <i data-feather="wifi"></i>
+                        <span>Wifi</span>
+                        <div class="bill-count-compact" id="wifiCount">0</div>
+                    </button>
+                    <button class="bill-tab-compact coming-soon" disabled>
+                        <i data-feather="cloud"></i>
+                        <span>Cloud Storage</span>
+                        <div class="coming-soon-badge">Soon</div>
                     </button>
                 </div>
 
@@ -168,7 +182,7 @@
                     </div>
                     <button id="payAllBtn" class="btn-pay-all">
                         <i data-feather="credit-card"></i>
-                        <span>Pay All</span>
+                        <span>Pay All Bills</span>
                     </button>
                 </div>
 
@@ -189,7 +203,7 @@
                 <div class="modal-overlay"></div>
                 <div class="modal-content profile-modal">
                     <div class="modal-header">
-                        <h3>User Profile</h3>
+                        <h3>Account Details</h3>
                         <button id="closeProfileModal" class="btn-icon">
                             <i data-feather="x"></i>
                         </button>
@@ -259,7 +273,7 @@
                         <div class="connection-intro">
                             <img src="https://i.postimg.cc/RZxMH0H8/image.png" alt="GlobeINT" class="connection-logo">
                             <h4>Choose Your Service</h4>
-                            <p>Select the service you want to get connected with India's fastest network</p>
+                            <p>Select the service you want to connect with</p>
                         </div>
 
                         <div class="service-options">
@@ -268,12 +282,7 @@
                                     <i data-feather="smartphone"></i>
                                 </div>
                                 <h5>Mobile Connection</h5>
-                                <p>Get high-speed 5G connectivity</p>
-                                <ul class="service-features">
-                                    <li>Unlimited calling</li>
-                                    <li>High-speed data</li>
-                                    <li>Pan-India network</li>
-                                </ul>
+                                <p>High-speed 5G connectivity</p>
                             </div>
 
                             <div class="service-card" data-service="electric">
@@ -282,11 +291,6 @@
                                 </div>
                                 <h5>Electric Connection</h5>
                                 <p>Reliable power supply 24/7</p>
-                                <ul class="service-features">
-                                    <li>Smart metering</li>
-                                    <li>Online billing</li>
-                                    <li>Quick support</li>
-                                </ul>
                             </div>
 
                             <div class="service-card" data-service="wifi">
@@ -294,12 +298,7 @@
                                     <i data-feather="wifi"></i>
                                 </div>
                                 <h5>Wifi Connection</h5>
-                                <p>Ultra-fast broadband internet</p>
-                                <ul class="service-features">
-                                    <li>Fiber connectivity</li>
-                                    <li>Unlimited data</li>
-                                    <li>24/7 support</li>
-                                </ul>
+                                <p>Ultra-fast broadband</p>
                             </div>
                         </div>
 
@@ -307,13 +306,13 @@
                             <div class="expert-info">
                                 <i data-feather="headphones"></i>
                                 <div>
-                                    <h5>Need Help?</h5>
+                                    <h5>Need Assistance?</h5>
                                     <p>Connect with our sales expert</p>
                                 </div>
                             </div>
                             <button id="contactExpertBtn" class="btn-primary">
                                 <i data-feather="message-circle"></i>
-                                <span>Chat on WhatsApp</span>
+                                <span>Contact Expert</span>
                             </button>
                         </div>
                     </div>
@@ -331,13 +330,20 @@
                         </button>
                     </div>
                     <div class="payment-body">
+                        <!-- Payment Timer -->
+                        <div class="payment-timer">
+                            <i data-feather="clock"></i>
+                            <span>Complete payment within</span>
+                            <div class="timer-display" id="paymentTimer">02:00</div>
+                        </div>
+
                         <div class="payment-summary">
                             <div class="payment-detail">
                                 <span>Bill ID:</span>
                                 <strong id="paymentBillId">-</strong>
                             </div>
                             <div class="payment-detail">
-                                <span>Bill Type:</span>
+                                <span>Service:</span>
                                 <strong id="paymentBillType">-</strong>
                             </div>
                             <div class="payment-amount">
@@ -348,28 +354,65 @@
 
                         <div class="payment-methods">
                             <h4>Select Payment Method</h4>
-                            <div class="payment-options">
-                                <button class="payment-option active" data-method="upi">
+                            <div class="payment-tabs">
+                                <button class="payment-tab active" data-method="upi">
                                     <i data-feather="smartphone"></i>
-                                    <span>UPI Payment</span>
+                                    <span>UPI Apps</span>
+                                </button>
+                                <button class="payment-tab" data-method="card" disabled>
+                                    <i data-feather="credit-card"></i>
+                                    <span>Card</span>
+                                    <span class="tab-badge">Soon</span>
+                                </button>
+                                <button class="payment-tab" data-method="netbanking" disabled>
+                                    <i data-feather="briefcase"></i>
+                                    <span>Net Banking</span>
+                                    <span class="tab-badge">Soon</span>
                                 </button>
                             </div>
                         </div>
 
                         <div class="upi-section" id="upiSection">
+                            <div class="upi-apps-grid">
+                                <button class="upi-app-btn" id="phonePeBtn">
+                                    <img src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTo4x8kSTmPUq4PFzl4HNT0gObFuEhivHOFYg&s" alt="PhonePe" class="upi-app-logo">
+                                    <span>PhonePe</span>
+                                </button>
+                                <button class="upi-app-btn" id="gPayBtn">
+                                    <img src="https://logowik.com/content/uploads/images/google-play-or-tez.jpg" alt="Google Pay" class="upi-app-logo">
+                                    <span>Google Pay</span>
+                                </button>
+                                <button class="upi-app-btn" id="paytmBtn">
+                                    <img src="https://play-lh.googleusercontent.com/WDGsMRuVENnZPEpV4DEaXw12qtMY3em85xpmZqcXzeh0iT_eXFtAU9VUj-Z7xNQQd5DMqrkKSs9D0qbI1rlt" alt="Paytm" class="upi-app-logo">
+                                    <span>Paytm</span>
+                                </button>
+                                <button class="upi-app-btn" id="whatsappPayBtn">
+                                    <img src="https://i.postimg.cc/CKpkm2PL/Untitled-design-(3).png" alt="WhatsApp Pay" class="upi-app-logo">
+                                    <span>WhatsApp Pay</span>
+                                </button>
+                            </div>
+
+                            <div class="or-divider">
+                                <span>OR</span>
+                            </div>
+
                             <div class="upi-details">
                                 <div class="upi-id-box">
                                     <i data-feather="at-sign"></i>
-                                    <span>anas.lila@ibl</span>
+                                    <span id="upiIdText">anas.lila@ibl</span>
+                                    <button id="copyUpiBtn" class="btn-copy-upi" title="Copy UPI ID">
+                                        <i data-feather="copy"></i>
+                                    </button>
                                 </div>
                                 <div class="qr-code-container">
                                     <img id="qrCodeImage" src="" alt="UPI QR Code" class="qr-code">
-                                    <p class="qr-instruction">Scan QR code to pay</p>
+                                    <p class="qr-instruction">Scan with any UPI app to pay</p>
                                 </div>
                             </div>
-                            <button id="confirmPaymentBtn" class="btn-primary btn-confirm-payment">
-                                <i data-feather="check-circle"></i>
-                                <span>I Have Paid</span>
+
+                            <button id="checkPaymentBtn" class="btn-primary btn-check-payment">
+                                <i data-feather="search"></i>
+                                <span>Check Payment Status</span>
                             </button>
                         </div>
                     </div>
@@ -381,14 +424,14 @@
                 <div class="modal-overlay"></div>
                 <div class="modal-content payment-result-modal">
                     <div class="modal-header success-header">
-                        <h3>Payment Successful!</h3>
+                        <h3>Payment Successful</h3>
                         <button id="closeSuccessModal" class="btn-icon">
                             <i data-feather="x"></i>
                         </button>
                     </div>
                     <div class="payment-result-body">
                         <img src="https://i.postimg.cc/wvqc2J14/image.png" alt="Success" class="result-image">
-                        <h4>Payment Completed</h4>
+                        <h4>Payment Completed Successfully</h4>
                         <div class="payment-details">
                             <div class="detail-row">
                                 <span>Bill ID:</span>
@@ -408,7 +451,6 @@
                             </div>
                         </div>
                         <button id="doneSuccessBtn" class="btn-primary">
-                            <i data-feather="check"></i>
                             <span>Done</span>
                         </button>
                     </div>
@@ -454,12 +496,41 @@
                     </div>
                 </div>
             </div>
+
+            <!-- Payment Gateway Timeout Modal -->
+            <div id="paymentTimeoutModal" class="modal hidden">
+                <div class="modal-overlay"></div>
+                <div class="modal-content payment-result-modal">
+                    <div class="modal-header failed-header">
+                        <h3>Payment Gateway Timeout</h3>
+                        <button id="closeTimeoutModal" class="btn-icon">
+                            <i data-feather="x"></i>
+                        </button>
+                    </div>
+                    <div class="payment-result-body">
+                        <img src="https://i.postimg.cc/Dzc6sF2D/image.png" alt="Timeout" class="result-image">
+                        <h4>Payment Session Expired</h4>
+                        <div class="payment-details">
+                            <p class="timeout-message">The payment session has expired. Please do not pay to the previous QR code.</p>
+                            <p class="timeout-instruction">Click "Generate New QR" to create a fresh payment request.</p>
+                        </div>
+                        <div class="failed-actions">
+                            <button id="generateNewQRBtn" class="btn-primary">
+                                <i data-feather="refresh-cw"></i>
+                                <span>Generate New QR</span>
+                            </button>
+                            <button id="closeTimeoutBtn" class="btn-secondary">
+                                <span>Close</span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
         </div>
     </main>
 
     <!-- Toast Notification -->
     <div id="toast" class="toast hidden">
-        <div class="toast-icon"></div>
         <span class="toast-text"></span>
     </div>
 

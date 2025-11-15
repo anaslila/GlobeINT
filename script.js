@@ -1,8 +1,8 @@
-// GlobeINT Billing System v1.05
-// Complete with Payment Gateway, WhatsApp Integration & Due Date Badges
+// GlobeINT Billing System v1.06
+// Payment Status Check + Copy UPI + 120s Timeout
 
 const API_URL = 'https://script.google.com/macros/s/AKfycbyZH0rxfUMSZa8BtmOq3Ey96KnTXTZr9mcUl2_BSSBxOR4-msR92p4Sf3KPs4xFJFzHmQ/exec';
-const WHATSAPP_NUMBER = '918879706046'; // +91 8879706046
+const WHATSAPP_NUMBER = '918879706046';
 
 let currentUser = null;
 let currentBillType = 'mobile';
@@ -12,8 +12,12 @@ let loadingInterval = null;
 let loadingMessageIndex = 0;
 let currentPaymentBill = null;
 let selectedService = null;
+let paymentTimer = null;
+let paymentTimeLeft = 120; // 120 seconds (2 minutes)
+let statusCheckInterval = null;
+let statusCheckMessageIndex = 0;
 
-// Loading Messages Array
+// Loading Messages
 const loadingMessages = [
     "Preparing things for you...",
     "Getting everything in place...",
@@ -27,9 +31,25 @@ const loadingMessages = [
     "Done in a blink..."
 ];
 
+// Payment Status Check Messages
+const statusCheckMessages = [
+    "Checking your payment...",
+    "Verifying transaction...",
+    "Confirming payment status...",
+    "Hold on, matching details...",
+    "Processing your request...",
+    "Securely checking payment...",
+    "Reviewing transaction info...",
+    "Almost done, stay with us...",
+    "Final confirmation in progress...",
+    "Updating your payment status..."
+];
+
 // DOM Elements
 const loadingOverlay = document.getElementById('loadingOverlay');
 const loadingText = document.getElementById('loadingText');
+const statusCheckOverlay = document.getElementById('statusCheckOverlay');
+const statusCheckText = document.getElementById('statusCheckText');
 const authSection = document.getElementById('authSection');
 const dashboardSection = document.getElementById('dashboardSection');
 const userSection = document.getElementById('userSection');
@@ -40,7 +60,7 @@ const loginForm = document.getElementById('loginForm');
 const registerForm = document.getElementById('registerForm');
 const authMessage = document.getElementById('authMessage');
 
-const billTabs = document.querySelectorAll('.bill-tab');
+const billTabs = document.querySelectorAll('.bill-tab-compact');
 const billsContainer = document.getElementById('billsContainer');
 const refreshBtn = document.getElementById('refreshBtn');
 const sectionTitle = document.getElementById('sectionTitle');
@@ -63,7 +83,15 @@ const contactExpertBtn = document.getElementById('contactExpertBtn');
 
 const paymentModal = document.getElementById('paymentModal');
 const closePaymentModal = document.getElementById('closePaymentModal');
-const confirmPaymentBtn = document.getElementById('confirmPaymentBtn');
+const checkPaymentBtn = document.getElementById('checkPaymentBtn');
+const paymentTimerDisplay = document.getElementById('paymentTimer');
+const copyUpiBtn = document.getElementById('copyUpiBtn');
+const upiIdText = document.getElementById('upiIdText');
+
+const phonePeBtn = document.getElementById('phonePeBtn');
+const gPayBtn = document.getElementById('gPayBtn');
+const paytmBtn = document.getElementById('paytmBtn');
+const whatsappPayBtn = document.getElementById('whatsappPayBtn');
 
 const paymentSuccessModal = document.getElementById('paymentSuccessModal');
 const closeSuccessModal = document.getElementById('closeSuccessModal');
@@ -72,35 +100,92 @@ const doneSuccessBtn = document.getElementById('doneSuccessBtn');
 const paymentFailedModal = document.getElementById('paymentFailedModal');
 const closeFailedModal = document.getElementById('closeFailedModal');
 const retryPaymentBtn = document.getElementById('retryPaymentBtn');
+const closeFailedBtn = document.getElementById('closeFailedBtn');
+
+const paymentTimeoutModal = document.getElementById('paymentTimeoutModal');
+const closeTimeoutModal = document.getElementById('closeTimeoutModal');
+const generateNewQRBtn = document.getElementById('generateNewQRBtn');
+const closeTimeoutBtn = document.getElementById('closeTimeoutBtn');
 
 const logoutBtn = document.getElementById('logoutBtn');
 const toast = document.getElementById('toast');
 
 // Initialize
 document.addEventListener('DOMContentLoaded', () => {
-    console.log('%c🌐 GlobeINT v1.05 - Initialized', 'color: #d40000; font-size: 16px; font-weight: bold;');
+    console.log('%c🌐 GlobeINT v1.06 - Professional', 'color: #d40000; font-size: 16px; font-weight: bold;');
     feather.replace();
     checkSession();
     setupEventListeners();
+    disableCopyPaste();
 });
+
+// Disable Copy/Paste/Right Click
+function disableCopyPaste() {
+    document.addEventListener('contextmenu', (e) => {
+        e.preventDefault();
+        showToast('Right-click is disabled', 'error');
+    });
+
+    document.addEventListener('copy', (e) => {
+        if (!e.target.matches('input, textarea')) {
+            e.preventDefault();
+            showToast('Copying is disabled', 'error');
+        }
+    });
+
+    document.addEventListener('cut', (e) => {
+        if (!e.target.matches('input, textarea')) {
+            e.preventDefault();
+            showToast('Cutting is disabled', 'error');
+        }
+    });
+
+    document.addEventListener('paste', (e) => {
+        if (!e.target.matches('input, textarea')) {
+            e.preventDefault();
+        }
+    });
+
+    document.addEventListener('keydown', (e) => {
+        if (e.ctrlKey && e.key === 'u') {
+            e.preventDefault();
+            showToast('Source viewing is disabled', 'error');
+        }
+        if (e.ctrlKey && e.shiftKey && e.key === 'I') {
+            e.preventDefault();
+            showToast('Developer tools are disabled', 'error');
+        }
+        if (e.key === 'F12') {
+            e.preventDefault();
+            showToast('Developer tools are disabled', 'error');
+        }
+        if (e.ctrlKey && e.key === 's') {
+            e.preventDefault();
+            showToast('Saving is disabled', 'error');
+        }
+        if (e.ctrlKey && e.shiftKey && e.key === 'C') {
+            e.preventDefault();
+        }
+    });
+
+    console.log('🔒 Copy/Paste protection enabled');
+}
 
 // Event Listeners
 function setupEventListeners() {
-    // Auth tabs
     authTabs.forEach(tab => {
         tab.addEventListener('click', () => switchAuthTab(tab.dataset.tab));
     });
 
-    // Forms
     loginForm.addEventListener('submit', handleLogin);
     registerForm.addEventListener('submit', handleRegister);
 
-    // Bill tabs
     billTabs.forEach(tab => {
-        tab.addEventListener('click', () => switchBillType(tab.dataset.type));
+        if (!tab.disabled) {
+            tab.addEventListener('click', () => switchBillType(tab.dataset.type));
+        }
     });
 
-    // Buttons
     refreshBtn.addEventListener('click', () => {
         const icon = refreshBtn.querySelector('svg');
         icon.style.animation = 'spin 0.6s ease';
@@ -112,15 +197,12 @@ function setupEventListeners() {
     newConnectionBtn.addEventListener('click', openNewConnectionModal);
     logoutBtn.addEventListener('click', handleLogout);
     
-    // Profile Modal
     userProfileBtn.addEventListener('click', openUserProfile);
     closeProfileModal.addEventListener('click', closeUserProfile);
     
-    // New Connection Modal
     closeNewConnectionModal.addEventListener('click', closeNewConnection);
     contactExpertBtn.addEventListener('click', contactExpert);
     
-    // Service card selection
     document.addEventListener('click', (e) => {
         const serviceCard = e.target.closest('.service-card');
         if (serviceCard) {
@@ -130,43 +212,84 @@ function setupEventListeners() {
         }
     });
     
-    // Payment Modals
     closePaymentModal.addEventListener('click', closePayment);
-    confirmPaymentBtn.addEventListener('click', confirmPayment);
+    checkPaymentBtn.addEventListener('click', checkPaymentStatus);
+    copyUpiBtn.addEventListener('click', copyUpiId);
+    
+    phonePeBtn.addEventListener('click', () => openUPIApp('phonepe'));
+    gPayBtn.addEventListener('click', () => openUPIApp('gpay'));
+    paytmBtn.addEventListener('click', () => openUPIApp('paytm'));
+    whatsappPayBtn.addEventListener('click', () => openUPIApp('whatsapp'));
+    
     closeSuccessModal.addEventListener('click', closeSuccessPayment);
     doneSuccessBtn.addEventListener('click', closeSuccessPayment);
     closeFailedModal.addEventListener('click', closeFailedPayment);
+    closeFailedBtn.addEventListener('click', closeFailedPayment);
     retryPaymentBtn.addEventListener('click', retryPayment);
     
-    // Close modals on overlay click
-    [userProfileModal, newConnectionModal, paymentModal, paymentSuccessModal, paymentFailedModal].forEach(modal => {
+    closeTimeoutModal.addEventListener('click', closeTimeoutPayment);
+    closeTimeoutBtn.addEventListener('click', closeTimeoutPayment);
+    generateNewQRBtn.addEventListener('click', regenerateQR);
+    
+    [userProfileModal, newConnectionModal, paymentModal, paymentSuccessModal, paymentFailedModal, paymentTimeoutModal].forEach(modal => {
         modal.addEventListener('click', (e) => {
             if (e.target === modal || e.target.classList.contains('modal-overlay')) {
                 modal.classList.add('hidden');
+                if (modal === paymentModal) {
+                    stopPaymentTimer();
+                }
             }
         });
     });
 
-    // Event delegation for dynamically created Pay Now buttons
     billsContainer.addEventListener('click', (e) => {
         const payBtn = e.target.closest('.btn-pay');
         if (payBtn) {
+            e.preventDefault();
+            e.stopPropagation();
             const billId = payBtn.dataset.billid;
             const amount = payBtn.dataset.amount;
+            console.log('💳 Pay button clicked:', billId, amount);
             openPaymentGateway(billId, amount);
         }
     });
 
-    // Close modals on Escape key
     document.addEventListener('keydown', (e) => {
         if (e.key === 'Escape') {
-            [userProfileModal, newConnectionModal, paymentModal, paymentSuccessModal, paymentFailedModal].forEach(modal => {
+            [userProfileModal, newConnectionModal, paymentModal, paymentSuccessModal, paymentFailedModal, paymentTimeoutModal].forEach(modal => {
                 if (!modal.classList.contains('hidden')) {
                     modal.classList.add('hidden');
+                    if (modal === paymentModal) {
+                        stopPaymentTimer();
+                    }
                 }
             });
         }
     });
+}
+
+// Copy UPI ID to Clipboard
+async function copyUpiId() {
+    const upiId = upiIdText.textContent;
+    
+    try {
+        await navigator.clipboard.writeText(upiId);
+        showToast('UPI ID copied to clipboard!', 'success');
+        
+        // Visual feedback
+        copyUpiBtn.innerHTML = '<i data-feather="check"></i>';
+        feather.replace();
+        
+        setTimeout(() => {
+            copyUpiBtn.innerHTML = '<i data-feather="copy"></i>';
+            feather.replace();
+        }, 2000);
+        
+        console.log('📋 UPI ID copied:', upiId);
+    } catch (err) {
+        console.error('❌ Failed to copy:', err);
+        showToast('Failed to copy UPI ID', 'error');
+    }
 }
 
 // Loading Functions
@@ -183,6 +306,7 @@ function showLoading(show) {
 function startLoadingMessages() {
     loadingMessageIndex = 0;
     loadingText.textContent = loadingMessages[0];
+    
     loadingInterval = setInterval(() => {
         loadingMessageIndex = (loadingMessageIndex + 1) % loadingMessages.length;
         loadingText.textContent = loadingMessages[loadingMessageIndex];
@@ -193,6 +317,83 @@ function stopLoadingMessages() {
     if (loadingInterval) {
         clearInterval(loadingInterval);
         loadingInterval = null;
+    }
+}
+
+// Payment Status Check Functions
+function showStatusCheck(show) {
+    if (show) {
+        statusCheckOverlay.classList.remove('hidden');
+        startStatusCheckMessages();
+    } else {
+        statusCheckOverlay.classList.add('hidden');
+        stopStatusCheckMessages();
+    }
+}
+
+function startStatusCheckMessages() {
+    statusCheckMessageIndex = 0;
+    statusCheckText.textContent = statusCheckMessages[0];
+    
+    statusCheckInterval = setInterval(() => {
+        statusCheckMessageIndex = (statusCheckMessageIndex + 1) % statusCheckMessages.length;
+        statusCheckText.textContent = statusCheckMessages[statusCheckMessageIndex];
+    }, 2000);
+}
+
+function stopStatusCheckMessages() {
+    if (statusCheckInterval) {
+        clearInterval(statusCheckInterval);
+        statusCheckInterval = null;
+    }
+}
+
+// Payment Timer Functions (120 seconds)
+function startPaymentTimer() {
+    paymentTimeLeft = 120; // 2 minutes
+    updateTimerDisplay();
+    
+    paymentTimer = setInterval(() => {
+        paymentTimeLeft--;
+        updateTimerDisplay();
+        
+        if (paymentTimeLeft <= 0) {
+            stopPaymentTimer();
+            closePayment();
+            showTimeoutModal();
+        }
+    }, 1000);
+    
+    console.log('⏱️ Payment timer started (120 seconds)');
+}
+
+function stopPaymentTimer() {
+    if (paymentTimer) {
+        clearInterval(paymentTimer);
+        paymentTimer = null;
+    }
+}
+
+function updateTimerDisplay() {
+    const minutes = Math.floor(paymentTimeLeft / 60);
+    const seconds = paymentTimeLeft % 60;
+    paymentTimerDisplay.textContent = `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+}
+
+// Timeout Modal Functions
+function showTimeoutModal() {
+    paymentTimeoutModal.classList.remove('hidden');
+    feather.replace();
+}
+
+function closeTimeoutPayment() {
+    paymentTimeoutModal.classList.add('hidden');
+}
+
+function regenerateQR() {
+    closeTimeoutPayment();
+    if (currentPaymentBill) {
+        openPaymentGateway(currentPaymentBill['Bill ID'], currentPaymentBill.Amount);
     }
 }
 
@@ -263,7 +464,7 @@ async function handleLogin(e) {
         if (data.success) {
             currentUser = userId;
             localStorage.setItem('globeint_user', userId);
-            showToast('Login successful! Welcome back.', 'success');
+            showToast('Login successful', 'success');
             setTimeout(() => showDashboard(), 800);
         } else {
             showAuthMessage(data.message || 'Invalid credentials', 'error');
@@ -451,14 +652,13 @@ function updateBillSummary() {
     console.log('💰 Bill summary updated:', { totalCount, totalAmount });
 }
 
-// Calculate days until due date
 function calculateDaysUntilDue(dueDateStr) {
     if (!dueDateStr) return null;
     
     const parts = dueDateStr.split('/');
     if (parts.length !== 3) return null;
     
-    const dueDate = new Date(parts[2], parts[1] - 1, parts[0]); // DD/MM/YYYY
+    const dueDate = new Date(parts[2], parts[1] - 1, parts[0]);
     const today = new Date();
     today.setHours(0, 0, 0, 0);
     dueDate.setHours(0, 0, 0, 0);
@@ -475,7 +675,7 @@ function getDueStatusBadge(daysUntilDue) {
     if (daysUntilDue < 0) {
         return `<span class="due-status overdue">
             <i data-feather="alert-circle"></i>
-            OVERDUE by ${Math.abs(daysUntilDue)} days
+            OVERDUE ${Math.abs(daysUntilDue)} days
         </span>`;
     } else if (daysUntilDue === 0) {
         return `<span class="due-status overdue">
@@ -597,6 +797,7 @@ function openPaymentGateway(billId, amount) {
     document.getElementById('paymentAmount').textContent = `₹${parseFloat(amount).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
     
     generateUPIQRCode(amount);
+    startPaymentTimer();
     
     paymentModal.classList.remove('hidden');
     feather.replace();
@@ -617,13 +818,52 @@ function generateUPIQRCode(amount) {
     console.log('✅ QR Code generated');
 }
 
+// UPI Deep Links
+function openUPIApp(app) {
+    if (!currentPaymentBill) {
+        showToast('No bill selected', 'error');
+        return;
+    }
+
+    const upiId = 'anas.lila@ibl';
+    const name = 'GlobeINT';
+    const amount = parseFloat(currentPaymentBill.Amount).toFixed(2);
+    const note = `Payment for ${currentPaymentBill['Bill ID']}`;
+    
+    let deepLink = '';
+    
+    switch(app) {
+        case 'phonepe':
+            deepLink = `phonepe://pay?pa=${upiId}&pn=${encodeURIComponent(name)}&am=${amount}&cu=INR&tn=${encodeURIComponent(note)}`;
+            break;
+        case 'gpay':
+            deepLink = `tez://upi/pay?pa=${upiId}&pn=${encodeURIComponent(name)}&am=${amount}&cu=INR&tn=${encodeURIComponent(note)}`;
+            break;
+        case 'paytm':
+            deepLink = `paytmmp://pay?pa=${upiId}&pn=${encodeURIComponent(name)}&am=${amount}&cu=INR&tn=${encodeURIComponent(note)}`;
+            break;
+        case 'whatsapp':
+            deepLink = `upi://pay?pa=${upiId}&pn=${encodeURIComponent(name)}&am=${amount}&cu=INR&tn=${encodeURIComponent(note)}`;
+            break;
+    }
+    
+    console.log(`📱 Opening ${app}:`, deepLink);
+    window.location.href = deepLink;
+    
+    setTimeout(() => {
+        showToast(`Opening ${app.toUpperCase()}... If the app doesn't open, use the QR code.`, 'success');
+    }, 500);
+}
+
 function closePayment() {
     paymentModal.classList.add('hidden');
+    stopPaymentTimer();
     currentPaymentBill = null;
     console.log('❌ Payment modal closed');
 }
 
-async function confirmPayment() {
+// Check Payment Status
+async function checkPaymentStatus() {
     if (!currentPaymentBill) {
         showToast('No bill selected', 'error');
         return;
@@ -631,10 +871,10 @@ async function confirmPayment() {
 
     const billId = currentPaymentBill['Bill ID'];
     const amount = parseFloat(currentPaymentBill.Amount);
-    console.log('✅ Confirming payment for bill:', billId);
+    console.log('🔍 Checking payment status for bill:', billId);
 
     closePayment();
-    showLoading(true);
+    showStatusCheck(true);
 
     try {
         const response = await fetchWithRetry(API_URL, 3, {
@@ -649,17 +889,17 @@ async function confirmPayment() {
 
         console.log('📥 Payment response:', data);
 
-        showLoading(false);
+        showStatusCheck(false);
 
         if (data.success) {
             showPaymentSuccess(billId, amount);
             await loadAllBills();
         } else {
-            showPaymentFailed(billId, amount, data.message || 'Transaction failed');
+            showPaymentFailed(billId, amount, data.message || 'Transaction not found');
         }
     } catch (error) {
-        console.error('❌ Payment error:', error);
-        showLoading(false);
+        console.error('❌ Payment check error:', error);
+        showStatusCheck(false);
         showPaymentFailed(billId, amount, 'Connection error');
     }
 }
@@ -716,7 +956,11 @@ async function handlePayAll() {
         return;
     }
 
-    showToast('Pay All feature coming soon!', 'success');
+    currentPaymentBill = { 
+        'Bill ID': 'ALL_BILLS', 
+        Amount: totalAmount 
+    };
+    openPaymentGateway('ALL_BILLS', totalAmount);
 }
 
 // New Connection Modal
@@ -753,7 +997,6 @@ function openUserProfile() {
 
 function closeUserProfile() {
     userProfileModal.classList.add('hidden');
-    console.log('❌ User profile closed');
 }
 
 function populateUserProfile() {
@@ -777,8 +1020,6 @@ function populateUserProfile() {
     document.getElementById('totalBills').textContent = totalBillsCount;
     document.getElementById('pendingBills').textContent = pendingBillsCount;
     document.getElementById('paidBills').textContent = paidBillsCount;
-
-    console.log('📊 Profile stats:', { totalBillsCount, pendingBillsCount, paidBillsCount });
 }
 
 // UI Helper Functions
@@ -798,7 +1039,7 @@ function showToast(message, type = 'success') {
     if (toastText) {
         toastText.textContent = message;
     } else {
-        toast.textContent = message;
+        toast.innerHTML = `<span class="toast-text">${message}</span>`;
     }
     
     toast.className = `toast ${type}`;
@@ -809,9 +1050,6 @@ function showToast(message, type = 'success') {
     }, 4000);
 }
 
-// Smooth scroll
-document.documentElement.style.scrollBehavior = 'smooth';
-
 // Auto-refresh bills every 5 minutes
 setInterval(() => {
     if (currentUser && loadingOverlay.classList.contains('hidden')) {
@@ -821,6 +1059,6 @@ setInterval(() => {
 }, 300000);
 
 // Console branding
-console.log('%c🌐 GlobeINT Billing System', 'color: #d40000; font-size: 24px; font-weight: bold;');
-console.log('%cIndia\'s Fastest Network', 'color: #666; font-size: 14px; font-style: italic;');
-console.log('%cVersion 1.05 - Ready!', 'color: #00b960; font-size: 12px; font-weight: bold;');
+console.log('%c🌐 GlobeINT Professional', 'color: #d40000; font-size: 22px; font-weight: bold;');
+console.log('%cInnovation made for you...', 'color: #666; font-size: 13px; font-style: italic;');
+console.log('%cVersion 1.06 - Secure & Advanced', 'color: #28a745; font-size: 11px; font-weight: bold;');
